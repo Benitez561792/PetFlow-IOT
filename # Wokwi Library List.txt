@@ -1,0 +1,6 @@
+
+
+PubSubClient
+dhtESP32-rmt
+ArduinoJson
+DHT sensor library for ESPx

@@ -1,0 +1,456 @@
+[
+  {
+    "id": "tab_petflow",
+    "type": "tab",
+    "label": "PetFlow — Monitor de Temperatura",
+    "disabled": false,
+    "info": "Dashboard de monitoramento de temperatura do pet via MQTT"
+  },
+  {
+    "id": "mqtt_in_temp",
+    "type": "mqtt in",
+    "z": "tab_petflow",
+    "name": "Recebe Temperatura",
+    "topic": "petflow/temperatura",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "broker_hivemq",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "x": 120,
+    "y": 100,
+    "wires": [
+      [
+        "split_data"
+      ]
+    ]
+  },
+  {
+    "id": "split_data",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Salva Dados Completos",
+    "func": "msg.data = msg.payload;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 340,
+    "y": 100,
+    "wires": [
+      [
+        "extract_temp",
+        "extract_humidity",
+        "check_status",
+        "text_pet",
+        "chart_temp"
+      ]
+    ]
+  },
+  {
+    "id": "extract_temp",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Extrai Temperatura",
+    "func": "msg.payload = msg.data.temperatura;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 580,
+    "y": 40,
+    "wires": [
+      [
+        "gauge_temp"
+      ]
+    ]
+  },
+  {
+    "id": "extract_humidity",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Extrai Umidade",
+    "func": "msg.payload = msg.data.umidade;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 580,
+    "y": 100,
+    "wires": [
+      [
+        "gauge_humidity"
+      ]
+    ]
+  },
+  {
+    "id": "check_status",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Verifica Status",
+    "func": "var d    = msg.data;\nvar temp = d.temperatura;\nvar st   = d.status;\nvar pet  = d.pet || 'Pet';\n\n// Faixas normais por espécie (para mensagem contextualizada)\nvar faixas = {\n  'Hamster'  : '37–38°C',\n  'Coelho'   : '38–39.5°C',\n  'Gato'     : '37.5–39.2°C',\n  'Cachorro' : '37.5–39.2°C',\n  'Porquinho': '38–40°C',\n  'Ferret'   : '37.8–40°C',\n  'Chinchila': '36–38°C'\n};\nvar faixa = faixas[pet] ? ' (normal: ' + faixas[pet] + ')' : '';\n\nvar texts = {\n  'NORMAL'    : '✅ ' + pet + ' está bem! Temperatura normal: ' + temp + '°C' + faixa,\n  'FEBRE'     : '🌡️ ATENÇÃO! ' + pet + ' com febre: ' + temp + '°C' + faixa + ' — Consulte o veterinário!',\n  'CRITICO'   : '🚨 CRÍTICO! ' + pet + ': ' + temp + '°C' + faixa + ' — EMERGÊNCIA VETERINÁRIA!',\n  'HIPOTERMIA': '🥶 ATENÇÃO! ' + pet + ' com hipotermia: ' + temp + '°C' + faixa + ' — Consulte o veterinário!'\n};\n\nmsg.payload   = texts[st] || ('Status desconhecido: ' + st);\nmsg.status    = st;\nmsg.alertFlag = (st !== 'NORMAL');\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 580,
+    "y": 180,
+    "wires": [
+      [
+        "text_status",
+        "notification_filter"
+      ]
+    ]
+  },
+  {
+    "id": "text_pet",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Info do Pet",
+    "func": "var d = msg.data;\nvar faixas = {\n  'Hamster'  : '37–38°C',\n  'Coelho'   : '38–39.5°C',\n  'Gato'     : '37.5–39.2°C',\n  'Cachorro' : '37.5–39.2°C',\n  'Porquinho': '38–40°C',\n  'Ferret'   : '37.8–40°C',\n  'Chinchila': '36–38°C'\n};\nvar faixa = faixas[d.pet] ? ' | Faixa normal: ' + faixas[d.pet] : '';\nmsg.payload = '🐾 ' + (d.pet || 'Pet')\n  + ' | Leitura #' + d.leitura\n  + ' | Dispositivo: ' + d.device\n  + faixa\n  + ' | ' + d.timestamp;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 580,
+    "y": 260,
+    "wires": [
+      [
+        "text_pet_info"
+      ]
+    ]
+  },
+  {
+    "id": "notification_filter",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Filtra Alerta",
+    "func": "if (msg.alertFlag) {\n  msg.topic = 'PetFlow Alerta';\n  return msg;\n}\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 800,
+    "y": 180,
+    "wires": [
+      [
+        "ui_notification"
+      ]
+    ]
+  },
+  {
+    "id": "chart_temp",
+    "type": "function",
+    "z": "tab_petflow",
+    "name": "Prepara Gráfico",
+    "func": "msg.topic   = 'Temperatura';\nmsg.payload = msg.data.temperatura;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 580,
+    "y": 340,
+    "wires": [
+      [
+        "ui_chart"
+      ]
+    ]
+  },
+  {
+    "id": "gauge_temp",
+    "type": "ui_gauge",
+    "z": "tab_petflow",
+    "name": "Temperatura",
+    "group": "group_main",
+    "order": 1,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Temperatura do Pet (°C)",
+    "label": "°C",
+    "format": "{{value}}",
+    "min": 35,
+    "max": 42,
+    "colors": [
+      "#3498db",
+      "#27ae60",
+      "#e67e22",
+      "#e74c3c"
+    ],
+    "seg1": "37.5",
+    "seg2": "39.2",
+    "x": 800,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "gauge_humidity",
+    "type": "ui_gauge",
+    "z": "tab_petflow",
+    "name": "Umidade",
+    "group": "group_main",
+    "order": 2,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Umidade Relativa (%)",
+    "label": "%",
+    "format": "{{value}}",
+    "min": 0,
+    "max": 100,
+    "colors": [
+      "#e74c3c",
+      "#27ae60",
+      "#3498db"
+    ],
+    "seg1": "30",
+    "seg2": "70",
+    "x": 800,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "text_status",
+    "type": "ui_text",
+    "z": "tab_petflow",
+    "group": "group_alerts",
+    "order": 1,
+    "width": 12,
+    "height": 2,
+    "name": "Status do Pet",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "col-center",
+    "x": 800,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "text_pet_info",
+    "type": "ui_text",
+    "z": "tab_petflow",
+    "group": "group_info",
+    "order": 1,
+    "width": 12,
+    "height": 1,
+    "name": "Info Pet",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "col-center",
+    "x": 800,
+    "y": 260,
+    "wires": []
+  },
+  {
+    "id": "ui_chart",
+    "type": "ui_chart",
+    "z": "tab_petflow",
+    "name": "Histórico Temperatura",
+    "group": "group_chart",
+    "order": 1,
+    "width": 12,
+    "height": 6,
+    "label": "Histórico de Temperatura (°C)",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "Aguardando dados...",
+    "dot": true,
+    "ymin": "35",
+    "ymax": "42",
+    "removeOlder": 1,
+    "removeOlderPoints": "50",
+    "removeOlderUnit": "3600",
+    "cutout": 0,
+    "useOneColor": false,
+    "colors": [
+      "#27ae60",
+      "#e74c3c",
+      "#e67e22",
+      "#3498db"
+    ],
+    "x": 800,
+    "y": 340,
+    "wires": []
+  },
+  {
+    "id": "ui_notification",
+    "type": "ui_toast",
+    "z": "tab_petflow",
+    "position": "top right",
+    "displayTime": "5",
+    "highlight": "",
+    "sendall": true,
+    "outputs": 0,
+    "ok": "OK",
+    "cancel": "",
+    "raw": false,
+    "topic": "PetFlow",
+    "name": "Notificação Alerta",
+    "x": 1000,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "inject_hamster_hypo",
+    "type": "inject",
+    "z": "tab_petflow",
+    "name": "Teste — Hamster Hipotermia (36.2°C)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0,
+    "topic": "",
+    "payload": "{\"device\":\"petflow-esp32-001\",\"pet\":\"Hamster\",\"temperatura\":36.2,\"umidade\":60,\"status\":\"HIPOTERMIA\",\"cor\":\"blue\",\"leitura\":1,\"timestamp\":\"2026-01-01T12:00:00\"}",
+    "payloadType": "json",
+    "x": 130,
+    "y": 240,
+    "wires": [
+      [
+        "split_data"
+      ]
+    ]
+  },
+  {
+    "id": "inject_cachorro_normal",
+    "type": "inject",
+    "z": "tab_petflow",
+    "name": "Teste — Cachorro Normal (38°C)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0,
+    "topic": "",
+    "payload": "{\"device\":\"petflow-esp32-001\",\"pet\":\"Cachorro\",\"temperatura\":38.0,\"umidade\":65,\"status\":\"NORMAL\",\"cor\":\"green\",\"leitura\":2,\"timestamp\":\"2026-01-01T12:00:05\"}",
+    "payloadType": "json",
+    "x": 130,
+    "y": 300,
+    "wires": [
+      [
+        "split_data"
+      ]
+    ]
+  },
+  {
+    "id": "inject_gato_febre",
+    "type": "inject",
+    "z": "tab_petflow",
+    "name": "Teste — Gato Febre (39.8°C)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0,
+    "topic": "",
+    "payload": "{\"device\":\"petflow-esp32-001\",\"pet\":\"Gato\",\"temperatura\":39.8,\"umidade\":70,\"status\":\"FEBRE\",\"cor\":\"orange\",\"leitura\":3,\"timestamp\":\"2026-01-01T12:00:10\"}",
+    "payloadType": "json",
+    "x": 130,
+    "y": 360,
+    "wires": [
+      [
+        "split_data"
+      ]
+    ]
+  },
+  {
+    "id": "inject_coelho_critico",
+    "type": "inject",
+    "z": "tab_petflow",
+    "name": "Teste — Coelho Crítico (40.6°C)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0,
+    "topic": "",
+    "payload": "{\"device\":\"petflow-esp32-001\",\"pet\":\"Coelho\",\"temperatura\":40.6,\"umidade\":74,\"status\":\"CRITICO\",\"cor\":\"red\",\"leitura\":4,\"timestamp\":\"2026-01-01T12:00:15\"}",
+    "payloadType": "json",
+    "x": 130,
+    "y": 420,
+    "wires": [
+      [
+        "split_data"
+      ]
+    ]
+  },
+  {
+    "id": "broker_hivemq",
+    "type": "mqtt-broker",
+    "name": "HiveMQ Public Broker",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "nodered-petflow-client",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "sessionExpiry": ""
+  },
+  {
+    "id": "group_main",
+    "type": "ui_group",
+    "name": "🌡️ Leituras em Tempo Real",
+    "tab": "ui_tab_petflow",
+    "order": 1,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "group_alerts",
+    "type": "ui_group",
+    "name": "🐾 Status do Pet",
+    "tab": "ui_tab_petflow",
+    "order": 2,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "group_chart",
+    "type": "ui_group",
+    "name": "📈 Histórico de Temperatura",
+    "tab": "ui_tab_petflow",
+    "order": 3,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "group_info",
+    "type": "ui_group",
+    "name": "ℹ️ Informações do Dispositivo",
+    "tab": "ui_tab_petflow",
+    "order": 4,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "ui_tab_petflow",
+    "type": "ui_tab",
+    "name": "PetFlow Monitor",
+    "icon": "pets",
+    "order": 1,
+    "disp": true
+  }
+]

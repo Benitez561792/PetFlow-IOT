@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "author": "PetFlow Team — FIAP 2026",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp32",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -60,
+      "left": 220,
+      "attrs": {
+        "temperature": "38.5",
+        "humidity": "65"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_ok",
+      "top": 100,
+      "left": 220,
+      "attrs": {
+        "color": "green",
+        "label": "Normal"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_fever",
+      "top": 160,
+      "left": 220,
+      "attrs": {
+        "color": "red",
+        "label": "Febre"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer1",
+      "top": 230,
+      "left": 220,
+      "attrs": {
+        "volume": "0.5"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res1",
+      "top": 100,
+      "left": 160,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res2",
+      "top": 160,
+      "left": 160,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res_pullup",
+      "top": -60,
+      "left": 160,
+      "attrs": {
+        "value": "10000",
+        "label": "Pull-up DHT22"
+      },
+      "rotate": 90
+    }
+  ],
+  "connections": [
+    [
+      "esp32:TX0",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp32:RX0",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "dht1:VCC",
+      "esp32:3V3",
+      "red",
+      []
+    ],
+    [
+      "dht1:SDA",
+      "esp32:D15",
+      "green",
+      []
+    ],
+    [
+      "dht1:GND",
+      "esp32:GND",
+      "black",
+      []
+    ],
+    [
+      "esp32:D2",
+      "res1:1",
+      "green",
+      []
+    ],
+    [
+      "res1:2",
+      "led_ok:A",
+      "green",
+      []
+    ],
+    [
+      "led_ok:C",
+      "esp32:GND",
+      "black",
+      []
+    ],
+    [
+      "esp32:D4",
+      "res2:1",
+      "red",
+      []
+    ],
+    [
+      "res2:2",
+      "led_fever:A",
+      "red",
+      []
+    ],
+    [
+      "led_fever:C",
+      "esp32:GND",
+      "black",
+      []
+    ],
+    [
+      "esp32:D5",
+      "buzzer1:1",
+      "orange",
+      []
+    ],
+    [
+      "buzzer1:2",
+      "esp32:GND",
+      "black",
+      []
+    ],
+    [
+      "dht1:SDA",
+      "res_pullup:1",
+      "yellow",
+      []
+    ],
+    [
+      "res_pullup:2",
+      "esp32:3V3",
+      "red",
+      []
+    ]
+  ],
+  "dependencies": {}
+}
