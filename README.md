@@ -260,7 +260,9 @@ Exemplo de mensagem publicada no tópico `petflow/temperatura`:
 | **Disrupção / Inovação** (até 10pts) | Monitoramento especializado por espécie com faixas biológicas reais; alertas graduados por severidade |
 
 ---
+Link GitHub
 
+https://github.com/Benitez561792/PetFlow-IOT.git
 
 ## 📄 Licença
 
